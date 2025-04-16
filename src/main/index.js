@@ -55,7 +55,25 @@ app.whenReady().then(() => {
       FROM Sales
       GROUP BY partner_id
     `).all()
-
+    ipcMain.handle('add-partner', (event, partner) => {
+      const stmt = db.prepare(`
+        INSERT INTO Partners (partner_type, partner_name, director_name, email, phone, legal_address, inn, rating)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+    
+      stmt.run(
+        partner.partner_type,
+        partner.partner_name,
+        partner.director_name,
+        partner.email,
+        partner.phone,
+        partner.legal_address,
+        partner.inn,
+        partner.rating
+      )
+    
+      return true
+    })
     const salesMap = Object.fromEntries(sales.map(s => [s.partner_id, s.total]))
 
     return partners

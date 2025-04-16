@@ -11,6 +11,10 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('api', {
+      getPartners: () => ipcRenderer.invoke('get-partners'),
+      addPartner: (data) => ipcRenderer.invoke('add-partner', data) // ← это нужно!
+    })
   } catch (error) {
     console.error(error)
   }
