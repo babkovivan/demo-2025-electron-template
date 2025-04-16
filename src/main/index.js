@@ -2,6 +2,8 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+const path = require('path')
+const db = require(path.resolve(__dirname, '../../src/main/db.js'))
 
 async function foo(event, data) {
   try {
@@ -45,6 +47,29 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
 
   ipcMain.handle('sendSignal', foo)
+
+  ipcMain.handle('get-partners', () => {
+    const partners = db.prepare('SELECT * FROM Partners').all()
+    const sales = db.prepare(`
+      SELECT partner_id, SUM(quantity_sold) as total
+      FROM Sales
+      GROUP BY partner_id
+    `).all()
+
+    const salesMap = Object.fromEntries(sales.map(s => [s.partner_id, s.total]))
+
+    return partners
+      .map(p => {
+        const total = salesMap[p.partner_id] || 0
+        let discount = 0
+        if (total >= 10000 && total < 50000) discount = 5
+        else if (total >= 50000 && total < 300000) discount = 10
+        else if (total >= 300000) discount = 15
+
+        return { ...p, discount, totalSold: total }
+      })
+      .sort((a, b) => b.totalSold - a.totalSold)
+  })
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
